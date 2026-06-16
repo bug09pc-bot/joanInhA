@@ -1,74 +1,61 @@
 import streamlit as st
-from dotenv import load_dotenv
+from datetime import datetime
 import os
-import requests
+from dotenv import load_dotenv
+from groq import Groq
 
 load_dotenv()
 
-# Configuração Grok (xAI)
-GROK_API_KEY = os.getenv("GROK_API_KEY")
+st.set_page_config(
+    page_title="J.A.R.V.I.S",
+    page_icon="🤖",
+    layout="centered"
+)
 
-# Modelo fixo (você pode mudar aqui se quiser)
-MODEL = "grok-4.3"   # ou grok-3, grok-beta, etc
+st.title("🦾 J.A.R.V.I.S")
+st.caption("IA Futurista com Groq - Rápida e poderosa!")
 
-if not GROK_API_KEY:
-    st.error("❌ Coloque sua GROK_API_KEY no arquivo .env")
+# Pega a chave
+groq_key = os.getenv("GROQ_API_KEY")
+
+if not groq_key:
+    st.error("⚠️ Crie um arquivo .env com sua chave do Groq!")
+    st.info("Vá em https://console.groq.com/keys e crie uma chave gratuita.")
     st.stop()
 
-# Configuração da página
-st.set_page_config(page_title="Grok IA", page_icon="🧠", layout="centered")
-st.title("🧠 Grok IA Online")
-st.caption("Usando API oficial do Grok (xAI)")
+if "historico" not in st.session_state:
+    st.session_state.historico = []
 
-# Histórico da conversa
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+for msg in st.session_state.historico:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-# Exibir mensagens anteriores
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# Input do usuário
 if prompt := st.chat_input("Digite sua mensagem..."):
-    # Mostra mensagem do usuário
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.historico.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Resposta do Grok
     with st.chat_message("assistant"):
-        with st.spinner("Grok pensando..."):
+        with st.spinner("J.A.R.V.I.S pensando em alta velocidade..."):
             try:
-                response = requests.post(
-                    "https://api.x.ai/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {GROK_API_KEY}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "model": MODEL,
-                        "messages": [{"role": m["role"], "content": m["content"]} 
-                                    for m in st.session_state.messages],
-                        "temperature": 0.7,
-                        "max_tokens": 4096
-                    },
-                    timeout=60
+                client = Groq(api_key=groq_key)
+                
+                messages = [
+                    {"role": "system", "content": "Você é J.A.R.V.I.S, a IA futurista, sarcástica, leal e extremamente útil do Tony Stark. Responda sempre em português do Brasil, de forma natural, divertida e direta."}
+                ] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.historico]
+
+                response = client.chat.completions.create(
+                    model="llama-3.1-8b-instant",   # rápido e bom no free tier
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=800
                 )
                 
-                response.raise_for_status()
-                data = response.json()
-                resposta = data['choices'][0]['message']['content']
-                
+                resposta = response.choices[0].message.content
                 st.markdown(resposta)
                 
-                # Salva no histórico
-                st.session_state.messages.append({"role": "assistant", "content": resposta})
-                
             except Exception as e:
-                st.error(f"Erro ao conectar com Grok: {str(e)}")
+                st.error("Limite do Groq atingido ou erro temporário. Aguarde uns segundos e tente novamente.")
+                resposta = "Estou com um pouco de carga agora, senhor. Tenta de novo em 10 segundos!"
 
-# Botão para limpar conversa
-if st.button("🗑️ Limpar Conversa"):
-    st.session_state.messages = []
-    st.rerun()
+    st.session_state.historico.append({"role": "assistant", "content": resposta})
