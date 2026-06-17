@@ -1,10 +1,6 @@
 import streamlit as st
-from datetime import datetime
 import os
-from dotenv import load_dotenv
 from groq import Groq
-
-load_dotenv()
 
 st.set_page_config(
     page_title="J.A.R.V.I.S",
@@ -13,14 +9,14 @@ st.set_page_config(
 )
 
 st.title("🦾 J.A.R.V.I.S")
-st.caption("IA Futurista com Groq - Rápida e poderosa!")
+st.caption("IA Futurista com Groq")
 
-# Pega a chave
+# Pega a chave do Secret do Streamlit
 groq_key = os.getenv("GROQ_API_KEY")
 
 if not groq_key:
-    st.error("⚠️ Crie um arquivo .env com sua chave do Groq!")
-    st.info("Vá em https://console.groq.com/keys e crie uma chave gratuita.")
+    st.error("🔑 Chave do Groq não encontrada!")
+    st.info("Vá em 'Gerenciar aplicativo' → Secrets e adicione GROQ_API_KEY")
     st.stop()
 
 if "historico" not in st.session_state:
@@ -36,16 +32,16 @@ if prompt := st.chat_input("Digite sua mensagem..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("J.A.R.V.I.S pensando em alta velocidade..."):
+        with st.spinner("J.A.R.V.I.S pensando..."):
             try:
                 client = Groq(api_key=groq_key)
                 
                 messages = [
-                    {"role": "system", "content": "Você é J.A.R.V.I.S, a IA futurista, sarcástica, leal e extremamente útil do Tony Stark. Responda sempre em português do Brasil, de forma natural, divertida e direta."}
+                    {"role": "system", "content": "Você é J.A.R.V.I.S, uma IA futurista, sarcástica, leal e extremamente útil. Responda sempre em português do Brasil de forma natural e divertida."}
                 ] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.historico]
 
                 response = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",   # rápido e bom no free tier
+                    model="llama-3.1-8b-instant",
                     messages=messages,
                     temperature=0.7,
                     max_tokens=800
@@ -55,8 +51,7 @@ if prompt := st.chat_input("Digite sua mensagem..."):
                 st.markdown(resposta)
                 
             except Exception as e:
-                st.error("Limite do Groq atingido ou erro temporário. Aguarde uns segundos e tente novamente.")
-                resposta = "Estou com um pouco de carga agora, senhor. Tenta de novo em 10 segundos!"
+                st.error("Limite temporário atingido. Aguarde 20 segundos e tente novamente.")
+                resposta = "Estou com um pouco de carga agora... Tenta de novo em alguns segundos!"
 
     st.session_state.historico.append({"role": "assistant", "content": resposta})
-    
