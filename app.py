@@ -1,57 +1,57 @@
-import streamlit as st
+from flask import Flask, render_template, request, jsonify
 import os
 from groq import Groq
+from dotenv import load_dotenv
 
-st.set_page_config(
-    page_title="JOANINHA",
-    page_icon="🤖",
-    layout="centered"
-)
+load_dotenv()
 
-st.title("JOANINHA")
-st.caption("IA Futurista com Groq")
+app = Flask(__name__)
 
-groq_key = os.getenv("GROQ_API_KEY")
+# Configurações
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=GROQ_API_KEY)
 
-if not groq_key:
-    st.error("🔑 Chave do Groq não encontrada!")
-    st.info("Vá em 'Gerenciar aplicativo' → Secrets e adicione GROQ_API_KEY")
-    st.stop()
+# Histórico de conversa (por sessão)
+conversations = {}
 
-if "historico" not in st.session_state:
-    st.session_state.historico = []
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-for msg in st.session_state.historico:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    user_message = data.get('message')
+    session_id = data.get('session_id', 'default')
 
-if prompt := st.chat_input("Digite sua mensagem..."):
-    st.session_state.historico.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    if not user_message:
+        return jsonify({"error": "Mensagem vazia"}), 400
 
-    with st.chat_message("assistant"):
-        with st.spinner("J.A.R.V.I.S pensando..."):
-            try:
-                client = Groq(api_key=groq_key)
-                
-                messages = [
-                    {"role": "system", "content": "Você é JOANINHA, uma IA futurista, sarcástica, leal e extremamente útil. Responda sempre em português do Brasil de forma natural e divertida."}
-                ] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.historico]
+    # Inicializa histórico da sessão
+    if session_id not in conversations:
+        conversations[session_id] = [
+            {"role": "system", "content": "Você é um assistente útil, inteligente e amigável. Responda em português do Brasil de forma clara e natural."}
+        ]
 
-                response = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
-                    messages=messages,
-                    temperature=0.7,
-                    max_tokens=800
-                )
-                
-                resposta = response.choices[0].message.content
-                st.markdown(resposta)
-                
-            except Exception as e:
-                st.error("Limite temporário atingido. Aguarde 20 segundos e tente novamente.")
-                resposta = "Estou um pouco cansada agora senhor... Tenta de novo em alguns segundos!"
-                st.markdown(resposta)
+    conversations[session_id].append({"role": "user", "content": user_message})
 
-    st.session_state.historico.append({"role": "assistant", "content": resposta})
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",   # Excelente equilíbrio de velocidade e qualidade
+            messages=conversations[session_id],
+            temperature=0.7,
+            max_tokens=1024
+        )
+
+        ai_reply = response.choices[0].message.content
+        conversations[session_id].append({"role": "assistant", "content": ai_reply})
+
+        return jsonify({"reply": ai_reply})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
