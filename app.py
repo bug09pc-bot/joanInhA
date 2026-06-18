@@ -3,12 +3,12 @@ import os
 from groq import Groq
 
 st.set_page_config(
-    page_title="J.A.R.V.I.S",
+    page_title="JOANINHA",
     page_icon="🤖",
     layout="centered"
 )
 
-st.title("🦾 J.A.R.V.I.S")
+st.title("JOANINHA")
 st.caption("IA Futurista com Groq")
 
 # Pega a chave do Secret do Streamlit
@@ -37,7 +37,7 @@ if prompt := st.chat_input("Digite sua mensagem..."):
                 client = Groq(api_key=groq_key)
                 
                 messages = [
-                    {"role": "system", "content": "Você é J.A.R.V.I.S, uma IA futurista, sarcástica, leal e extremamente útil. Responda sempre em português do Brasil de forma natural e divertida."}
+                    {"role": "system", "content": "Você é JOANINHA, uma IA futurista, sarcástica, leal e extremamente útil. Responda sempre em português do Brasil de forma natural e divertida."}
                 ] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.historico]
 
                 response = client.chat.completions.create(
@@ -52,6 +52,6 @@ if prompt := st.chat_input("Digite sua mensagem..."):
                 
             except Exception as e:
                 st.error("Limite temporário atingido. Aguarde 20 segundos e tente novamente.")
-                resposta = "Estou com um pouco de carga agora... Tenta de novo em alguns segundos!"
+                resposta = "Estou um pouco cansada agora senhor... Tenta de novo em alguns segundos!"
 
     st.session_state.historico.append({"role": "assistant", "content": resposta})
