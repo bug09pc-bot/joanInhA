@@ -11,7 +11,6 @@ st.set_page_config(
 st.title("JOANINHA")
 st.caption("IA Futurista com Groq")
 
-# Pega a chave do Secret do Streamlit
 groq_key = os.getenv("GROQ_API_KEY")
 
 if not groq_key:
@@ -53,5 +52,6 @@ if prompt := st.chat_input("Digite sua mensagem..."):
             except Exception as e:
                 st.error("Limite temporário atingido. Aguarde 20 segundos e tente novamente.")
                 resposta = "Estou um pouco cansada agora senhor... Tenta de novo em alguns segundos!"
+                st.markdown(resposta)
 
     st.session_state.historico.append({"role": "assistant", "content": resposta})
